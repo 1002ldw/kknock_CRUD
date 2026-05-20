@@ -9,10 +9,10 @@ if (!isset($_GET['id']) || !isset($_GET['post_id'])) {
 
 $comment_id = (int)$_GET['id'];
 $post_id = (int)$_GET['post_id'];
-$user_id = $_SESSION['user_id'];
+$author_id = $_SESSION['user_id'];
 
-$stmt = $conn->prepare("DELETE FROM comments WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $comment_id, $user_id);
+$stmt = $conn->prepare("DELETE FROM comments WHERE id = ? AND author_id = ?");
+$stmt->bind_param("ii", $comment_id, $author_id);
 $stmt->execute();
 $stmt->close();
 

@@ -8,9 +8,9 @@ if (!isset($_GET['id'])) {
 
 $id = (int)$_GET['id'];
 
-$stmt = $conn->prepare("SELECT posts.id, posts.user_id, posts.title, posts.content, posts.created_at, users.username
+$stmt = $conn->prepare("SELECT posts.id, posts.author_id, posts.title, posts.content, posts.created_at, users.username
                         FROM posts
-                        JOIN users ON posts.user_id = users.id
+                        JOIN users ON posts.author_id = users.id
                         WHERE posts.id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -85,7 +85,7 @@ $stmt->close();
     <?php endif; ?>
 
     <?php while ($comment = $comments->fetch_assoc()): ?>
-        <?php $isCommentOwner = is_logged_in() && ($_SESSION['user_id'] == $comment['user_id']); ?>
+        <?php $isCommentOwner = is_logged_in() && ($_SESSION['user_id'] == $comment['author_id']); ?>
         <div class="comment-box">
             <div class="comment-meta">
                 작성자: <?= htmlspecialchars($comment['username']) ?> |

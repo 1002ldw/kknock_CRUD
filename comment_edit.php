@@ -8,11 +8,11 @@ if (!isset($_GET['id'])) {
 }
 
 $comment_id = (int)$_GET['id'];
-$user_id = $_SESSION['user_id'];
+$author_id = $_SESSION['user_id'];
 $error = '';
 
-$stmt = $conn->prepare("SELECT * FROM comments WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $comment_id, $user_id);
+$stmt = $conn->prepare("SELECT * FROM comments WHERE id = ? AND author_id = ?");
+$stmt->bind_param("ii", $comment_id, $author_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $comment = $result->fetch_assoc();
@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($content === '') {
         $error = '댓글 내용을 입력하세요.';
     } else {
-        $stmt = $conn->prepare("UPDATE comments SET content = ? WHERE id = ? AND user_id = ?");
-        $stmt->bind_param("sii", $content, $comment_id, $user_id);
+        $stmt = $conn->prepare("UPDATE comments SET content = ? WHERE id = ? AND author_id = ?");
+        $stmt->bind_param("sii", $content, $comment_id, $author_id);
         $stmt->execute();
         $stmt->close();
 

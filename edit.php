@@ -11,7 +11,7 @@ $id = (int)$_GET['id'];
 $user_id = $_SESSION['user_id'];
 $error = '';
 
-$stmt = $conn->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
+$stmt = $conn->prepare("SELECT * FROM posts WHERE id = ? AND author_id = ?");
 $stmt->bind_param("ii", $id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($title === '' || $content === '') {
         $error = '모든 항목을 입력하세요.';
     } else {
-        $stmt = $conn->prepare("UPDATE posts SET title = ?, content = ? WHERE id = ? AND user_id = ?");
-        $stmt->bind_param("ssii", $title, $content, $id, $user_id);
+        $stmt = $conn->prepare("UPDATE posts SET title = ?, content = ? WHERE id = ? AND author_id = ?");
+        $stmt->bind_param("ssii", $title, $content, $id, $author_id);
         $stmt->execute();
         $stmt->close();
 
