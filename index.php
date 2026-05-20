@@ -6,7 +6,7 @@ require_login();
 
 $sql = "SELECT posts.id, posts.title, posts.created_at, users.username
         FROM posts
-        JOIN users ON posts.user_id = users.id
+        JOIN users ON posts.author_id = users.id
         ORDER BY posts.id DESC";
 $result = $conn->query($sql);
 ?>
