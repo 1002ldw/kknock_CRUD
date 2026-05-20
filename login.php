@@ -1,8 +1,4 @@
 <?php
-ob_start();
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 include 'db.php';
 include 'auth.php';
 
@@ -12,6 +8,7 @@ if (is_logged_in()) {
 }
 
 $error = "";
+$success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username'] ?? '');
@@ -23,39 +20,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } elseif ($password !== $confirm) {
         $error = "비밀번호가 일치하지 않습니다.";
     } else {
-        $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
-        if (!$checkStmt) {
-            die("중복확인 prepare 실패: " . $conn->error);
-        }
-
-        $checkStmt->bind_param("s", $username);
-        $checkStmt->execute();
-        $result = $checkStmt->get_result();
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if ($result->fetch_assoc()) {
             $error = "이미 존재하는 아이디입니다.";
-            $checkStmt->close();
         } else {
-            $checkStmt->close();
-
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-            $insertStmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-            if (!$insertStmt) {
-                die("INSERT prepare 실패: " . $conn->error);
-            }
-
-            $insertStmt->bind_param("ss", $username, $hashedPassword);
-
-            if (!$insertStmt->execute()) {
-                die("INSERT execute 실패: " . $insertStmt->error);
-            }
-
-            $insertStmt->close();
-
-            header("Location: /login.php");
-            exit;
+            $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+            $stmt->bind_param("ss", $username, $hashedPassword);
+            $stmt->execute();
+            $success = "회원가입이 완료되었습니다. 로그인하세요.";
         }
+        $stmt->close();
     }
 }
 ?>
@@ -67,17 +47,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <style>
         body { font-family: Arial, sans-serif; width: 500px; margin: 40px auto; }
         input { width: 100%; padding: 10px; margin: 8px 0 16px; box-sizing: border-box; }
-        .error { color: red; margin-bottom: 10px; }
+        .error { color: red; }
+        .success { color: green; }
     </style>
 </head>
 <body>
     <h1>회원가입</h1>
+    <?php if ($error): ?><p class="error"><?= htmlspecialchars($error) ?></p><?php endif; ?>
+    <?php if ($success): ?><p class="success"><?= htmlspecialchars($success) ?></p><?php endif; ?>
 
-    <?php if ($error): ?>
-        <p class="error"><?= htmlspecialchars($error) ?></p>
-    <?php endif; ?>
-
-    <form method="post" action="register.php">
+    <form method="post">
         <label>아이디</label>
         <input type="text" name="username" required>
 
