@@ -1,9 +1,15 @@
 <?php
+ob_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 include 'db.php';
 include 'auth.php';
+
+if (is_logged_in()) {
+    header("Location: index.php");
+    exit;
+}
 
 $error = "";
 
@@ -46,7 +52,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             $insertStmt->close();
-            header("Location: login.php");
+
+            header("Location: /login.php");
             exit;
         }
     }
@@ -60,12 +67,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <style>
         body { font-family: Arial, sans-serif; width: 500px; margin: 40px auto; }
         input { width: 100%; padding: 10px; margin: 8px 0 16px; box-sizing: border-box; }
-        .error { color: red; }
+        .error { color: red; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <h1>회원가입</h1>
-    <?php if ($error): ?><p class="error"><?= htmlspecialchars($error) ?></p><?php endif; ?>
+
+    <?php if ($error): ?>
+        <p class="error"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
 
     <form method="post" action="register.php">
         <label>아이디</label>
