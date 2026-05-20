@@ -1,8 +1,8 @@
 <?php
 $host = "localhost";
 $user = "board_user";
-$pass = "your_password";
-$dbname = "board_db";
+$pass = "password";
+$dbname = "cruddb";
 
 $conn = new mysqli($host, $user, $pass, $dbname);
 
