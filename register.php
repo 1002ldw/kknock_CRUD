@@ -28,8 +28,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
             $stmt->bind_param("ss", $username, $hashedPassword);
             $stmt->execute();
-
+            $stmt->close();
             $success = "회원가입이 완료되었습니다. 로그인하세요.";
+            header("Location: login.php");
+            exit;
+
+            
         }
         $stmt->close();
     }
