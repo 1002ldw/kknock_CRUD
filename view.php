@@ -22,11 +22,11 @@ if (!$post) {
     die('게시글이 존재하지 않습니다.');
 }
 
-$isOwner = is_logged_in() && ($_SESSION['user_id'] == $post['user_id']);
+$isOwner = is_logged_in() && ($_SESSION['user_id'] == $post['author_id']);
 
-$stmt = $conn->prepare("SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.username
+$stmt = $conn->prepare("SELECT comments.id, comments.post_id, comments.author_id, comments.content, comments.created_at, users.username
                         FROM comments
-                        JOIN users ON comments.user_id = users.id
+                        JOIN users ON comments.author_id = users.id
                         WHERE comments.post_id = ?
                         ORDER BY comments.id ASC");
 $stmt->bind_param("i", $id);

@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($title === '' || $content === '') {
         $error = '모든 항목을 입력하세요.';
     } else {
-        $stmt = $conn->prepare("INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO posts (author_id, title, content) VALUES (?, ?, ?)");
         $stmt->bind_param("iss", $user_id, $title, $content);
         $stmt->execute();
         $stmt->close();
