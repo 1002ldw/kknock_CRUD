@@ -1,18 +1,15 @@
 <?php
-// MySQL 서버 접속 정보
-$host = "localhost";
-$user = "board_user";
-$pass = "password";
-$dbname = "cruddb";
+$host = getenv('DB_HOST') ?: 'localhost';
+$port = (int)(getenv('DB_PORT') ?: 3306);
+$user = getenv('DB_USER') ?: 'board_user';
+$pass = getenv('DB_PASSWORD') ?: 'password';
+$dbname = getenv('DB_NAME') ?: 'cruddb';
 
-// MySQL 데이터베이스에 연결
-$conn = new mysqli($host, $user, $pass, $dbname);
+$conn = new mysqli($host, $user, $pass, $dbname, $port);
 
-// 연결 실패 시 에러 메시지 출력 후 종료
 if ($conn->connect_error) {
     die("DB 연결 실패: " . $conn->connect_error);
 }
 
-// 한글 및 다양한 문자 처리를 위해 문자셋 설정
 $conn->set_charset("utf8mb4");
 ?>
