@@ -1,67 +1,116 @@
 <?php
-// DB 연결과 인증 함수 불러오기
 include 'db.php';
 include 'auth.php';
+include 'board.php';
 
-// 로그인한 사용자만 접근 가능
 require_login();
 
-// 게시글 목록 조회
-$sql = "SELECT posts.id, posts.title, posts.created_at, users.username
+$board = board_type($_GET['board'] ?? 'general');
+$search = trim($_GET['user'] ?? '');
+if (text_length($search) > 50) {
+    http_error(400, '검색어는 50자 이하로 입력하세요.');
+}
+
+$sort = $_GET['sort'] ?? 'newest';
+$sortOptions = [
+    'newest' => ['최신순', 'posts.id DESC'],
+    'oldest' => ['오래된순', 'posts.id ASC'],
+    'title' => ['제목순', 'posts.title ASC, posts.id DESC'],
+    'author' => ['작성자순', 'users.username ASC, posts.id DESC'],
+];
+if (!isset($sortOptions[$sort])) {
+    $sort = 'newest';
+}
+
+$sql = "SELECT posts.id, posts.title, posts.created_at, users.username,
+               COUNT(attachments.id) AS attachment_count
         FROM posts
         JOIN users ON posts.author_id = users.id
-        ORDER BY posts.id DESC";
+        LEFT JOIN attachments ON attachments.post_id = posts.id
+        WHERE posts.board_type = ?";
 
-$result = $conn->query($sql);
-
-if (!$result) {
-    die("게시글 조회 실패: " . $conn->error);
+if ($search !== '') {
+    $sql .= ' AND users.username LIKE ?';
 }
+$sql .= " GROUP BY posts.id, posts.title, posts.created_at, users.username
+          ORDER BY " . $sortOptions[$sort][1];
+
+$stmt = $conn->prepare($sql);
+if ($search !== '') {
+    $searchPattern = '%' . $search . '%';
+    $stmt->bind_param('ss', $board, $searchPattern);
+} else {
+    $stmt->bind_param('s', $board);
+}
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 <!doctype html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>게시판 목록</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars(board_label($board)) ?></title>
     <style>
-        body { font-family: Arial, sans-serif; width: 900px; margin: 40px auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background: #f3f3f3; }
-        a { text-decoration: none; color: #222; }
-        .top { display: flex; justify-content: space-between; align-items: center; }
-        .btn { display: inline-block; padding: 8px 14px; border: 1px solid #333; background: #fafafa; margin-left: 6px; }
-        .title-cell { text-align: left; }
+        body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:12px;text-align:center}th{background:#f3f3f3}a{text-decoration:none;color:#222}.top,.toolbar,.nav{display:flex;justify-content:space-between;align-items:center;gap:10px}.nav{justify-content:flex-start;margin:18px 0}.btn,button{display:inline-block;padding:8px 14px;border:1px solid #333;background:#fafafa;color:#222}.active{background:#333;color:#fff}.title-cell{text-align:left}input,select{padding:8px}.empty{padding:30px;color:#666}.inline{display:inline}.toolbar>div{display:flex;align-items:center;gap:6px}@media(max-width:700px){.top,.toolbar{align-items:stretch;flex-direction:column}table{font-size:14px}th,td{padding:8px}}
     </style>
 </head>
 <body>
     <div class="top">
-        <h1>CRUD 게시판</h1>
+        <h1><?= htmlspecialchars(board_label($board)) ?></h1>
         <div>
             <span><?= htmlspecialchars($_SESSION['username']) ?>님</span>
-            <a class="btn" href="create.php">글쓰기</a>
-            <a class="btn" href="logout.php">로그아웃</a>
+            <a class="btn" href="create.php?board=<?= urlencode($board) ?>">글쓰기</a>
+            <form class="inline" method="post" action="logout.php">
+                <?= csrf_input() ?>
+                <button type="submit">로그아웃</button>
+            </form>
         </div>
     </div>
 
-    <table>
-        <tr>
-            <th>번호</th>
-            <th>제목</th>
-            <th>작성자</th>
-            <th>작성일</th>
-        </tr>
+    <nav class="nav" aria-label="게시판 선택">
+        <?php foreach (BOARD_TYPES as $type => $label): ?>
+            <a class="btn <?= $board === $type ? 'active' : '' ?>" href="<?= htmlspecialchars(board_url($type)) ?>"><?= htmlspecialchars($label) ?></a>
+        <?php endforeach; ?>
+    </nav>
 
+    <form class="toolbar" method="get">
+        <input type="hidden" name="board" value="<?= htmlspecialchars($board) ?>">
+        <div>
+            <label for="user">작성자 검색</label>
+            <input id="user" type="search" name="user" value="<?= htmlspecialchars($search) ?>" maxlength="50" placeholder="사용자명">
+            <button type="submit">검색</button>
+            <?php if ($search !== ''): ?><a class="btn" href="<?= htmlspecialchars(board_url($board, ['sort' => $sort])) ?>">초기화</a><?php endif; ?>
+        </div>
+        <div>
+            <label for="sort">정렬</label>
+            <select id="sort" name="sort" onchange="this.form.submit()">
+                <?php foreach ($sortOptions as $value => $option): ?>
+                    <option value="<?= $value ?>" <?= $sort === $value ? 'selected' : '' ?>><?= htmlspecialchars($option[0]) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    </form>
+
+    <table>
+        <thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th></tr></thead>
+        <tbody>
+        <?php if ($result->num_rows === 0): ?>
+            <tr><td class="empty" colspan="4">게시물이 없습니다.</td></tr>
+        <?php endif; ?>
         <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?= $row['id'] ?></td>
-            <td class="title-cell">
-                <a href="view.php?id=<?= $row['id'] ?>"><?= htmlspecialchars($row['title']) ?></a>
-            </td>
-            <td><?= htmlspecialchars($row['username']) ?></td>
-            <td><?= htmlspecialchars($row['created_at']) ?></td>
-        </tr>
+            <tr>
+                <td><?= (int)$row['id'] ?></td>
+                <td class="title-cell">
+                    <a href="view.php?id=<?= (int)$row['id'] ?>"><?= htmlspecialchars($row['title']) ?></a>
+                    <?php if ((int)$row['attachment_count'] > 0): ?> [파일 <?= (int)$row['attachment_count'] ?>]<?php endif; ?>
+                </td>
+                <td><?= htmlspecialchars($row['username']) ?></td>
+                <td><?= htmlspecialchars($row['created_at']) ?></td>
+            </tr>
         <?php endwhile; ?>
+        </tbody>
     </table>
 </body>
 </html>
+<?php $stmt->close(); ?>

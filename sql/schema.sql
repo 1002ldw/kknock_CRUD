@@ -9,12 +9,14 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS posts (
     id INT NOT NULL AUTO_INCREMENT,
+    board_type VARCHAR(20) NOT NULL DEFAULT 'general',
     title VARCHAR(200) NOT NULL,
     content TEXT NULL,
     author_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    KEY idx_posts_board_type_id (board_type, id),
     KEY idx_posts_author_id (author_id),
     CONSTRAINT fk_posts_author
         FOREIGN KEY (author_id) REFERENCES users (id)

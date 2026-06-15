@@ -1,62 +1,63 @@
 # kknock CRUD
 
-Simple Apache/PHP/MySQL CRUD board.
+Apache, PHP 8.3, and MySQL 8.4로 구성된 로그인 기반 게시판입니다.
 
-## Runtime detection
+## 기능
 
-This repository has no Composer manifest or explicit PHP platform constraint.
-The source uses core PHP sessions, password hashing, and `mysqli`, with no syntax
-requiring a newer release. PHP 8.3 is selected as the supported default because
-it matches Ubuntu 24.04's PHP generation. The image installs the required
-`mysqli` extension on the official Apache/PHP base.
+- 일반 게시판과 자유 게시판
+- 게시물 및 댓글 작성, 조회, 수정, 삭제
+- 최신순, 오래된순, 제목순, 작성자순 정렬
+- 작성자 이름 부분 검색
+- 게시물당 다중 첨부파일 업로드, 다운로드, 추가, 삭제
+- 파일당 10MB, 요청당 64MB, 요청당 최대 20개 제한
+- CSRF 검증과 작성자 권한 확인
 
-Set `PHP_VERSION` in `.env` to use another compatible official PHP Apache image.
+## 실행
 
-## Run with Docker Compose on Ubuntu
-
-Install Docker Engine and the Compose plugin, then run:
+Docker Engine과 Docker Compose 플러그인이 필요합니다.
 
 ```bash
 cp .env.example .env
+chmod 600 .env
 nano .env
 docker compose up --build -d
 docker compose ps
 ```
 
-Open `http://<ubuntu-vm-ip>:8080`. From inside the VM, use
-`http://localhost:8080`.
+브라우저에서 `http://localhost:8080`으로 접속합니다. 원격 Ubuntu VM에서는
+`http://<vm-ip>:8080`을 사용합니다. `APP_PORT`를 변경했다면 해당 포트를
+사용해야 합니다.
 
-The initial login is read from `ADMIN_USERNAME` and `ADMIN_PASSWORD` in
-`.env`. Change the example passwords before the first startup.
+초기 로그인 계정은 `.env`의 `ADMIN_USERNAME`, `ADMIN_PASSWORD`에서 읽습니다.
+예제 비밀번호는 첫 실행 전에 반드시 변경해야 합니다. 기존 DB에 같은 사용자명이
+있으면 비밀번호를 덮어쓰지 않습니다.
 
-If a VM firewall is enabled, allow the configured application port:
+## 데이터
 
-```bash
-sudo ufw allow 8080/tcp
-```
+- MySQL 데이터: Docker `mysql_data` 볼륨
+- 첨부파일: Docker `uploads` 볼륨
+- 기존 DB에는 시작 시 `board_type` 컬럼과 인덱스를 자동 보완
 
-## Database initialization
-
-On startup, the `db-init` service:
-
-1. Waits for MySQL to become healthy.
-2. Creates any missing tables from `sql/schema.sql`.
-3. Creates the configured initial user only when that username is absent.
-
-MySQL data is stored in the `mysql_data` Docker volume. Changing admin
-credentials in `.env` does not overwrite an existing user's password.
-
-To perform a completely fresh initialization and delete all application data:
+컨테이너만 삭제하면 데이터는 유지됩니다. 다음 명령은 DB와 첨부파일을 모두
+영구 삭제하므로 초기화가 필요한 경우에만 사용합니다.
 
 ```bash
 docker compose down -v
 docker compose up --build -d
 ```
 
-## Operations
+## 점검
+
+```bash
+./scripts/check.sh
+docker compose build
+docker compose logs --tail=100 web db-init
+```
+
+## 운영 명령
 
 ```bash
 docker compose logs -f
-docker compose down
 docker compose ps
+docker compose down
 ```

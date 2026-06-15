@@ -47,6 +47,34 @@ do {
     }
 } while ($connection->more_results() && $connection->next_result());
 
+$columnCheck = $connection->prepare(
+    'SELECT COUNT(*) AS column_count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = "posts" AND COLUMN_NAME = "board_type"'
+);
+$columnCheck->bind_param('s', $database);
+$columnCheck->execute();
+$hasBoardType = (int)$columnCheck->get_result()->fetch_assoc()['column_count'] > 0;
+$columnCheck->close();
+
+if (!$hasBoardType) {
+    $connection->query(
+        "ALTER TABLE posts ADD COLUMN board_type VARCHAR(20) NOT NULL DEFAULT 'general' AFTER id"
+    );
+}
+
+$indexCheck = $connection->prepare(
+    'SELECT COUNT(*) AS index_count FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = "posts" AND INDEX_NAME = "idx_posts_board_type_id"'
+);
+$indexCheck->bind_param('s', $database);
+$indexCheck->execute();
+$hasBoardIndex = (int)$indexCheck->get_result()->fetch_assoc()['index_count'] > 0;
+$indexCheck->close();
+
+if (!$hasBoardIndex) {
+    $connection->query('ALTER TABLE posts ADD INDEX idx_posts_board_type_id (board_type, id)');
+}
+
+$connection->query("UPDATE posts SET board_type = 'general' WHERE board_type NOT IN ('general', 'free')");
+
 $select = $connection->prepare('SELECT id FROM users WHERE username = ?');
 $select->bind_param('s', $adminUsername);
 $select->execute();
