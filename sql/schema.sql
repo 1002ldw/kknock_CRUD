@@ -1,3 +1,4 @@
+-- 로그인 계정 정보를 저장합니다.
 CREATE TABLE IF NOT EXISTS users (
     id INT NOT NULL AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL,
@@ -7,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 두 게시판의 게시글을 board_type으로 구분해 저장합니다.
 CREATE TABLE IF NOT EXISTS posts (
     id INT NOT NULL AUTO_INCREMENT,
     board_type VARCHAR(20) NOT NULL DEFAULT 'general',
@@ -23,6 +25,7 @@ CREATE TABLE IF NOT EXISTS posts (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 게시글별 댓글과 작성자를 저장하며 게시글 삭제 시 함께 삭제합니다.
 CREATE TABLE IF NOT EXISTS comments (
     id INT NOT NULL AUTO_INCREMENT,
     post_id INT NOT NULL,
@@ -40,6 +43,7 @@ CREATE TABLE IF NOT EXISTS comments (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 실제 파일은 업로드 볼륨에 두고 원본 이름과 저장 경로만 DB에 기록합니다.
 CREATE TABLE IF NOT EXISTS attachments (
     id INT NOT NULL AUTO_INCREMENT,
     post_id INT NOT NULL,

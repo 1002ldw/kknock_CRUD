@@ -1,4 +1,5 @@
 <?php
+// 사용자 자격 증명을 확인하고 로그인 세션을 생성합니다.
 include 'db.php';
 include 'auth.php';
 
@@ -24,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
+        // 인증 성공 시 세션 ID를 교체해 세션 고정 공격 가능성을 줄입니다.
         if ($user && password_verify($password, $user['password'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$user['id'];

@@ -1,11 +1,15 @@
 <?php
 
+// 인증 상태, 세션 보안, CSRF 검증 등 모든 화면에서 사용하는 보안 기능을 제공합니다.
+
+// 브라우저의 MIME 추측, iframe 삽입, 외부 리퍼러 전달을 제한합니다.
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: same-origin');
 }
 
+// 세션 고정 공격을 줄이고 JavaScript에서 세션 쿠키를 읽지 못하게 설정합니다.
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
@@ -33,6 +37,7 @@ function require_post() {
     }
 }
 
+// 세션마다 예측할 수 없는 CSRF 토큰 하나를 생성해 상태 변경 요청에 사용합니다.
 function csrf_token() {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -46,6 +51,7 @@ function csrf_input() {
         htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '">';
 }
 
+// 폼에서 전달된 토큰을 시간 차 공격에 안전한 방식으로 비교합니다.
 function verify_csrf() {
     $token = $_POST['csrf_token'] ?? '';
     if (!is_string($token) || !hash_equals(csrf_token(), $token)) {

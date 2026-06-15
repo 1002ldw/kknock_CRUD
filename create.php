@@ -1,4 +1,5 @@
 <?php
+// 게시글과 첨부파일을 하나의 트랜잭션으로 등록합니다.
 include 'db.php';
 include 'auth.php';
 include 'board.php';
@@ -25,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($content) > 65535) {
         $error = '내용이 너무 깁니다.';
     } else {
+        // 게시글과 첨부파일 정보가 함께 성공하거나 함께 취소되도록 트랜잭션을 사용합니다.
         try {
             $conn->begin_transaction();
             $stmt = $conn->prepare('INSERT INTO posts (board_type, author_id, title, content) VALUES (?, ?, ?, ?)');
@@ -38,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: view.php?id=' . $postId);
             exit;
         } catch (Throwable $exception) {
+            // DB는 롤백하고 트랜잭션에 포함되지 않는 실제 파일은 별도로 정리합니다.
             $conn->rollback();
             remove_attachment_files($savedPaths);
             error_log((string)$exception);

@@ -1,4 +1,5 @@
 <?php
+// 회원가입 입력을 검증하고 비밀번호를 해시한 뒤 사용자 계정을 생성합니다.
 include 'db.php';
 include 'auth.php';
 
@@ -25,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm) {
         $error = '비밀번호가 일치하지 않습니다.';
     } else {
+        // 사용자명 UNIQUE 제약 조건을 최종 중복 검사로 사용해 동시 가입 요청도 처리합니다.
         try {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare('INSERT INTO users (username, password) VALUES (?, ?)');

@@ -1,4 +1,5 @@
 <?php
+// 로그인한 사용자가 새 댓글을 등록하는 처리 전용 엔드포인트입니다.
 include 'db.php';
 include 'auth.php';
 
@@ -17,6 +18,7 @@ if (strlen($content) > 65535) {
     http_error(400, '댓글 내용이 너무 깁니다.');
 }
 
+// 존재하지 않는 게시글에 댓글이 연결되지 않도록 먼저 게시글을 확인합니다.
 $stmt = $conn->prepare('SELECT id FROM posts WHERE id = ?');
 $stmt->bind_param('i', $postId);
 $stmt->execute();

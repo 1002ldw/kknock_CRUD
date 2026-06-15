@@ -1,11 +1,15 @@
 <?php
 
+// 첨부파일 업로드, 조회, 삭제에 필요한 공통 기능을 제공합니다.
+
+// PHP 설정과 동일하게 파일 한 개의 최대 크기를 10MB로 제한합니다.
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
 function upload_directory() {
     return rtrim(getenv('UPLOAD_DIR') ?: '/var/www/uploads', DIRECTORY_SEPARATOR);
 }
 
+// 여러 파일 업로드로 중첩된 $_FILES 배열을 파일 단위 배열로 변환합니다.
 function uploaded_files($field) {
     if (!isset($_FILES[$field])) {
         return [];
@@ -41,6 +45,7 @@ function upload_error_message($error) {
     return '첨부파일 업로드에 실패했습니다.';
 }
 
+// 경로와 제어 문자를 제거하고 DB 컬럼 크기에 맞는 UTF-8 파일명을 만듭니다.
 function normalized_file_name($name) {
     $name = basename(str_replace('\\', '/', trim((string)$name)));
     $name = preg_replace('/[\x00-\x1F\x7F]/u', '', $name) ?? '';
@@ -63,6 +68,7 @@ function save_attachments($conn, $postId, $field = 'attachments') {
 
     $savedPaths = [];
 
+    // DB 저장 도중 실패하면 이미 디스크에 저장한 파일도 함께 정리합니다.
     try {
         foreach (uploaded_files($field) as $file) {
             $error = (int)$file['error'];
@@ -120,6 +126,7 @@ function load_post_attachments($conn, $postId) {
     return $rows;
 }
 
+// DB 값이 변조되어도 업로드 디렉터리 밖의 파일에는 접근하지 못하게 검사합니다.
 function is_upload_path($path) {
     $directory = realpath(upload_directory());
     $file = realpath($path);

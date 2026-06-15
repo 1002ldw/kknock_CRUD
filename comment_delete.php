@@ -1,4 +1,5 @@
 <?php
+// 댓글 작성자만 댓글을 삭제할 수 있도록 검증하는 처리 전용 엔드포인트입니다.
 include 'db.php';
 include 'auth.php';
 
@@ -9,6 +10,7 @@ verify_csrf();
 $id = (int)($_POST['id'] ?? 0);
 $userId = (int)$_SESSION['user_id'];
 
+// 댓글 ID와 로그인 사용자 ID를 함께 조회해 소유권을 검증합니다.
 $stmt = $conn->prepare('SELECT post_id FROM comments WHERE id = ? AND author_id = ?');
 $stmt->bind_param('ii', $id, $userId);
 $stmt->execute();

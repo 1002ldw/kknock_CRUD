@@ -1,5 +1,7 @@
 <?php
 
+// MySQL 오류를 예외로 변환해 각 처리 코드에서 일관되게 다룰 수 있게 합니다.
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $host = getenv('DB_HOST') ?: 'localhost';

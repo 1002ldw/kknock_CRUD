@@ -1,4 +1,5 @@
 <?php
+// 게시글, 첨부파일, 댓글을 조회해 상세 화면을 구성합니다.
 include 'db.php';
 include 'auth.php';
 include 'board.php';
@@ -8,6 +9,7 @@ if ($id <= 0) {
     http_error(400, '잘못된 접근입니다.');
 }
 
+// 게시글과 작성자 정보를 한 번의 JOIN 조회로 가져옵니다.
 $stmt = $conn->prepare('SELECT posts.id, posts.author_id, posts.board_type, posts.title, posts.content, posts.created_at, posts.updated_at, users.username FROM posts JOIN users ON posts.author_id = users.id WHERE posts.id = ?');
 $stmt->bind_param('i', $id);
 $stmt->execute();

@@ -1,4 +1,5 @@
 <?php
+// 게시판별 게시글을 작성자 검색 조건과 정렬 조건에 따라 조회합니다.
 include 'db.php';
 include 'auth.php';
 include 'board.php';
@@ -12,6 +13,7 @@ if (text_length($search) > 50) {
 }
 
 $sort = $_GET['sort'] ?? 'newest';
+// 정렬 SQL은 허용 목록에서만 선택해 사용자 입력이 SQL에 직접 들어가지 않게 합니다.
 $sortOptions = [
     'newest' => ['최신순', 'posts.id DESC'],
     'oldest' => ['오래된순', 'posts.id ASC'],
@@ -29,6 +31,7 @@ $sql = "SELECT posts.id, posts.title, posts.created_at, users.username,
         LEFT JOIN attachments ON attachments.post_id = posts.id
         WHERE posts.board_type = ?";
 
+// 검색어가 있을 때만 LIKE 조건과 바인딩 변수를 추가합니다.
 if ($search !== '') {
     $sql .= ' AND users.username LIKE ?';
 }
@@ -36,6 +39,7 @@ $sql .= " GROUP BY posts.id, posts.title, posts.created_at, users.username
           ORDER BY " . $sortOptions[$sort][1];
 
 $stmt = $conn->prepare($sql);
+// SQL 조건과 동일하게 검색어가 있을 때만 두 번째 바인딩 값을 전달합니다.
 if ($search !== '') {
     $searchPattern = '%' . $search . '%';
     $stmt->bind_param('ss', $board, $searchPattern);

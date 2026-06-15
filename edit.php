@@ -1,4 +1,5 @@
 <?php
+// 게시글 작성자에게 본문, 게시판, 첨부파일 수정 기능을 제공합니다.
 include 'db.php';
 include 'auth.php';
 include 'board.php';
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = trim($_POST['content'] ?? '');
     $board = board_type($_POST['board'] ?? $post['board_type']);
     $removeInput = $_POST['remove_attachments'] ?? [];
+    // 체크박스 값은 양의 정수만 남기고 중복된 첨부파일 ID를 제거합니다.
     $removeIds = is_array($removeInput)
         ? array_values(array_unique(array_filter(array_map('intval', $removeInput), fn($value) => $value > 0)))
         : [];
@@ -39,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($content) > 65535) {
         $error = '내용이 너무 깁니다.';
     } else {
+        // 본문, 게시판, 첨부파일 변경이 모두 성공할 때만 DB에 반영합니다.
         try {
             $conn->begin_transaction();
             $stmt = $conn->prepare('UPDATE posts SET board_type = ?, title = ?, content = ? WHERE id = ? AND author_id = ?');
@@ -46,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $stmt->close();
 
+            // 삭제할 파일 경로를 먼저 보관하고 DB 커밋이 완료된 뒤 실제 파일을 삭제합니다.
             if ($removeIds) {
                 $placeholders = implode(',', array_fill(0, count($removeIds), '?'));
                 $types = str_repeat('i', count($removeIds) + 1);
@@ -63,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
 
+            // 기존 파일 삭제와 신규 파일 등록을 같은 DB 트랜잭션으로 처리합니다.
             $savedPaths = save_attachments($conn, $id);
             $conn->commit();
             remove_attachment_files($removedPaths);

@@ -1,4 +1,5 @@
 <?php
+// 댓글 작성자에게 수정 폼을 제공하고 수정 요청을 처리합니다.
 include 'db.php';
 include 'auth.php';
 
@@ -7,6 +8,7 @@ $id = (int)($_GET['id'] ?? 0);
 $userId = (int)$_SESSION['user_id'];
 $error = '';
 
+// 수정 화면을 열 때부터 작성자 조건을 포함해 다른 사용자의 댓글 접근을 막습니다.
 $stmt = $conn->prepare('SELECT id, post_id, content FROM comments WHERE id = ? AND author_id = ?');
 $stmt->bind_param('ii', $id, $userId);
 $stmt->execute();

@@ -1,5 +1,7 @@
 <?php
 
+// 컨테이너 시작 시 스키마와 마이그레이션을 적용하고 초기 관리자를 준비합니다.
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $host = getenv('DB_HOST') ?: 'db';
@@ -18,6 +20,7 @@ if (!is_file($schemaPath)) {
 
 $connection = null;
 
+// MySQL 헬스체크 직후 연결이 지연될 수 있어 최대 30회 재시도합니다.
 for ($attempt = 1; $attempt <= 30; $attempt++) {
     try {
         $connection = new mysqli($host, $user, $password, $database, $port);
@@ -39,6 +42,7 @@ if ($schema === false) {
     exit(1);
 }
 
+// CREATE TABLE IF NOT EXISTS 문으로 신규 설치에 필요한 기본 테이블을 생성합니다.
 $connection->multi_query($schema);
 
 do {
@@ -47,6 +51,7 @@ do {
     }
 } while ($connection->more_results() && $connection->next_result());
 
+// 기존 설치에 board_type 컬럼이 없으면 데이터를 보존한 채 컬럼을 추가합니다.
 $columnCheck = $connection->prepare(
     'SELECT COUNT(*) AS column_count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = "posts" AND COLUMN_NAME = "board_type"'
 );
@@ -61,6 +66,7 @@ if (!$hasBoardType) {
     );
 }
 
+// 컬럼은 있지만 인덱스가 누락된 중간 상태도 자동으로 복구합니다.
 $indexCheck = $connection->prepare(
     'SELECT COUNT(*) AS index_count FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = "posts" AND INDEX_NAME = "idx_posts_board_type_id"'
 );
@@ -73,8 +79,10 @@ if (!$hasBoardIndex) {
     $connection->query('ALTER TABLE posts ADD INDEX idx_posts_board_type_id (board_type, id)');
 }
 
+// 정의되지 않은 게시판 값은 일반 게시판으로 정규화합니다.
 $connection->query("UPDATE posts SET board_type = 'general' WHERE board_type NOT IN ('general', 'free')");
 
+// 초기 관리자는 같은 사용자명이 없을 때만 생성하며 기존 비밀번호는 변경하지 않습니다.
 $select = $connection->prepare('SELECT id FROM users WHERE username = ?');
 $select->bind_param('s', $adminUsername);
 $select->execute();
