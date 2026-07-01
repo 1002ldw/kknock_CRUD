@@ -3,6 +3,7 @@
 // MySQL 오류를 예외로 변환해 각 처리 코드에서 일관되게 다룰 수 있게 합니다.
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+date_default_timezone_set('Asia/Seoul');
 
 $host = getenv('DB_HOST') ?: 'localhost';
 $port = (int)(getenv('DB_PORT') ?: 3306);
@@ -13,6 +14,7 @@ $dbname = getenv('DB_NAME') ?: 'cruddb';
 try {
     $conn = new mysqli($host, $user, $pass, $dbname, $port);
     $conn->set_charset('utf8mb4');
+    $conn->query("SET time_zone = '+09:00'");
 } catch (mysqli_sql_exception $exception) {
     error_log((string)$exception);
     http_response_code(500);

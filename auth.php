@@ -68,3 +68,21 @@ function text_length($value) {
     $count = preg_match_all('/./us', $value, $matches);
     return $count === false ? strlen($value) : $count;
 }
+
+function format_kst_datetime($value) {
+    if (!is_string($value) || $value === '') {
+        return '';
+    }
+
+    $timezone = new DateTimeZone('Asia/Seoul');
+    $date = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $value, $timezone);
+    if (!$date) {
+        try {
+            $date = new DateTimeImmutable($value, $timezone);
+        } catch (Exception $exception) {
+            return $value;
+        }
+    }
+
+    return $date->setTimezone($timezone)->format('Y-m-d H:i:s') . ' KST';
+}

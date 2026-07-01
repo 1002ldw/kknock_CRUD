@@ -1,5 +1,5 @@
 <?php
-// 게시판별 게시글을 작성자 검색 조건과 정렬 조건에 따라 조회합니다.
+// 게시판별 게시글을 제목/작성자 검색 조건과 정렬 조건에 따라 조회합니다.
 include 'db.php';
 include 'auth.php';
 include 'board.php';
@@ -7,9 +7,13 @@ include 'board.php';
 require_login();
 
 $board = board_type($_GET['board'] ?? 'general');
-$search = trim($_GET['user'] ?? '');
-if (text_length($search) > 50) {
-    http_error(400, '검색어는 50자 이하로 입력하세요.');
+$userSearch = trim($_GET['user'] ?? '');
+$titleSearch = trim($_GET['title'] ?? '');
+if (text_length($userSearch) > 50) {
+    http_error(400, '작성자 검색어는 50자 이하로 입력하세요.');
+}
+if (text_length($titleSearch) > 200) {
+    http_error(400, '제목 검색어는 200자 이하로 입력하세요.');
 }
 
 $sort = $_GET['sort'] ?? 'newest';
@@ -32,22 +36,31 @@ $sql = "SELECT posts.id, posts.title, posts.created_at, users.username,
         WHERE posts.board_type = ?";
 
 // 검색어가 있을 때만 LIKE 조건과 바인딩 변수를 추가합니다.
-if ($search !== '') {
+if ($titleSearch !== '') {
+    $sql .= ' AND posts.title LIKE ?';
+}
+if ($userSearch !== '') {
     $sql .= ' AND users.username LIKE ?';
 }
 $sql .= " GROUP BY posts.id, posts.title, posts.created_at, users.username
           ORDER BY " . $sortOptions[$sort][1];
 
 $stmt = $conn->prepare($sql);
-// SQL 조건과 동일하게 검색어가 있을 때만 두 번째 바인딩 값을 전달합니다.
-if ($search !== '') {
-    $searchPattern = '%' . $search . '%';
-    $stmt->bind_param('ss', $board, $searchPattern);
-} else {
-    $stmt->bind_param('s', $board);
+// SQL 조건과 동일하게 검색어가 있을 때만 바인딩 값을 전달합니다.
+$types = 's';
+$params = [$board];
+if ($titleSearch !== '') {
+    $types .= 's';
+    $params[] = '%' . $titleSearch . '%';
 }
+if ($userSearch !== '') {
+    $types .= 's';
+    $params[] = '%' . $userSearch . '%';
+}
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
+$hasSearch = $titleSearch !== '' || $userSearch !== '';
 ?>
 <!doctype html>
 <html lang="ko">
@@ -81,10 +94,12 @@ $result = $stmt->get_result();
     <form class="toolbar" method="get">
         <input type="hidden" name="board" value="<?= htmlspecialchars($board) ?>">
         <div>
+            <label for="title">제목 검색</label>
+            <input id="title" type="search" name="title" value="<?= htmlspecialchars($titleSearch) ?>" maxlength="200" placeholder="게시물 제목">
             <label for="user">작성자 검색</label>
-            <input id="user" type="search" name="user" value="<?= htmlspecialchars($search) ?>" maxlength="50" placeholder="사용자명">
+            <input id="user" type="search" name="user" value="<?= htmlspecialchars($userSearch) ?>" maxlength="50" placeholder="사용자명">
             <button type="submit">검색</button>
-            <?php if ($search !== ''): ?><a class="btn" href="<?= htmlspecialchars(board_url($board, ['sort' => $sort])) ?>">초기화</a><?php endif; ?>
+            <?php if ($hasSearch): ?><a class="btn" href="<?= htmlspecialchars(board_url($board, ['sort' => $sort])) ?>">초기화</a><?php endif; ?>
         </div>
         <div>
             <label for="sort">정렬</label>
@@ -110,7 +125,7 @@ $result = $stmt->get_result();
                     <?php if ((int)$row['attachment_count'] > 0): ?> [파일 <?= (int)$row['attachment_count'] ?>]<?php endif; ?>
                 </td>
                 <td><?= htmlspecialchars($row['username']) ?></td>
-                <td><?= htmlspecialchars($row['created_at']) ?></td>
+                <td><?= htmlspecialchars(format_kst_datetime($row['created_at'])) ?></td>
             </tr>
         <?php endwhile; ?>
         </tbody>

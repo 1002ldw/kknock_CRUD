@@ -46,8 +46,8 @@ $stmt->close();
         <div class="title"><?= htmlspecialchars($post['title']) ?></div>
         <div class="meta">
             작성자: <?= htmlspecialchars($post['username']) ?> |
-            작성일: <?= htmlspecialchars($post['created_at']) ?>
-            <?php if ($post['updated_at'] !== $post['created_at']): ?> | 수정일: <?= htmlspecialchars($post['updated_at']) ?><?php endif; ?>
+            작성일: <?= htmlspecialchars(format_kst_datetime($post['created_at'])) ?>
+            <?php if ($post['updated_at'] !== $post['created_at']): ?> | 수정일: <?= htmlspecialchars(format_kst_datetime($post['updated_at'])) ?><?php endif; ?>
         </div>
         <div class="content"><?= htmlspecialchars($post['content']) ?></div>
         <?php if ($attachments->num_rows > 0): ?>
@@ -86,7 +86,7 @@ $stmt->close();
     <?php while ($comment = $comments->fetch_assoc()): ?>
         <?php $isCommentOwner = is_logged_in() && (int)$_SESSION['user_id'] === (int)$comment['author_id']; ?>
         <div class="comment-box">
-            <div class="comment-meta">작성자: <?= htmlspecialchars($comment['username']) ?> | 작성일: <?= htmlspecialchars($comment['created_at']) ?></div>
+            <div class="comment-meta">작성자: <?= htmlspecialchars($comment['username']) ?> | 작성일: <?= htmlspecialchars(format_kst_datetime($comment['created_at'])) ?></div>
             <div><?= nl2br(htmlspecialchars($comment['content'])) ?></div>
             <?php if ($isCommentOwner): ?>
                 <div class="comment-actions">
