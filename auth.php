@@ -2,6 +2,80 @@
 
 // 인증 상태, 세션 보안, CSRF 검증 등 모든 화면에서 사용하는 보안 기능을 제공합니다.
 
+function parse_ip_list($value) {
+    if (!is_string($value) || trim($value) === '') {
+        return [];
+    }
+
+    return array_values(array_filter(
+        preg_split('/[\s,]+/', trim($value)),
+        fn($entry) => $entry !== ''
+    ));
+}
+
+function ip_matches_cidr($ip, $cidr) {
+    $parts = explode('/', $cidr, 2);
+    if (count($parts) !== 2 || !ctype_digit($parts[1])) {
+        return false;
+    }
+
+    [$network, $prefix] = $parts;
+    $ipBytes = inet_pton($ip);
+    $networkBytes = inet_pton($network);
+    if ($ipBytes === false || $networkBytes === false || strlen($ipBytes) !== strlen($networkBytes)) {
+        return false;
+    }
+
+    $prefix = (int) $prefix;
+    $bits = strlen($ipBytes) * 8;
+    if ($prefix < 0 || $prefix > $bits) {
+        return false;
+    }
+
+    $fullBytes = intdiv($prefix, 8);
+    $remainingBits = $prefix % 8;
+
+    if ($fullBytes > 0 && substr($ipBytes, 0, $fullBytes) !== substr($networkBytes, 0, $fullBytes)) {
+        return false;
+    }
+
+    if ($remainingBits === 0) {
+        return true;
+    }
+
+    $mask = (0xff << (8 - $remainingBits)) & 0xff;
+    return (ord($ipBytes[$fullBytes]) & $mask) === (ord($networkBytes[$fullBytes]) & $mask);
+}
+
+function ip_is_blocked($ip, $blockedIps) {
+    if (!is_string($ip) || inet_pton($ip) === false) {
+        return false;
+    }
+
+    foreach ($blockedIps as $blockedIp) {
+        if (strpos($blockedIp, '/') !== false) {
+            if (ip_matches_cidr($ip, $blockedIp)) {
+                return true;
+            }
+            continue;
+        }
+
+        if (inet_pton($blockedIp) !== false && $ip === $blockedIp) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function enforce_ip_blacklist() {
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    $blockedIps = parse_ip_list(getenv('BLOCKED_IPS') ?: '');
+    if (ip_is_blocked($clientIp, $blockedIps)) {
+        http_error(403, '접근이 차단된 IP입니다.');
+    }
+}
+
 // 브라우저의 MIME 추측, iframe 삽입, 외부 리퍼러 전달을 제한합니다.
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
@@ -19,6 +93,8 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
     session_start();
 }
+
+enforce_ip_blacklist();
 
 function is_logged_in() {
     return isset($_SESSION['user_id']);

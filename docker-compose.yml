@@ -35,6 +35,7 @@ services:
       UPLOAD_DIR: /var/www/uploads
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change_me_now}
+      BLOCKED_IPS: ${BLOCKED_IPS:-}
     depends_on:
       db:
         condition: service_healthy
